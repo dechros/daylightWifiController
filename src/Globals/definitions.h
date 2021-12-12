@@ -3,5 +3,10 @@
 
 #define EEPROM_SIZE 512
 #define SERIAL_BAUDRATE 9600
+#define WIFI_MAX_RETRY 20
+#define DIAGNOSTIC_PW "#DIAGNOSTIC#"
+
+#define ENABLE 1
+#define DISABLE 0
 
 #endif

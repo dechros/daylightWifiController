@@ -4,19 +4,23 @@ void normalTaskLoop(void *pvParameters)
 {
     configASSERT(((uint32_t)pvParameters) == 1);
 
-    Serial.println("Task normalTaskLoop created successfully");
+    if (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdTRUE)
+    {
+        Serial.println("Task normalTaskLoop created successfully");
+        xSemaphoreGive(xMutexConsole);
+    }
 
-    while (1)
+    while (true)
     {
         if ((xSemaphoreTake(xMutexNormalState, (TickType_t)10) == pdTRUE))
         {
-            Serial.println("xMutexNormalState alındı");
+            if (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdTRUE)
+            {
+                Serial.println("normalTaskLoop: xMutexNormalState alındı");
+                xSemaphoreGive(xMutexConsole);
+            }
         }
-        else if ((xSemaphoreTake(xMutexNormalState, (TickType_t)10) == pdFALSE))
-        {
-            Serial.println("Waiting for NORMAL WiFi Connection");
-        }
-        
+        xSemaphoreGive(xMutexNormalState);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }

@@ -9,104 +9,106 @@
 
 void setup()
 {
-    xMutexNormalState = xSemaphoreCreateMutex();
-    xMutexDiagnosticState = xSemaphoreCreateMutex();
-
     EEPROM.begin(EEPROM_SIZE);
-    
     Serial.begin(SERIAL_BAUDRATE);
 
-    BaseType_t xReturnedMainTask;
+    BaseType_t xReturnedTaskCreationVal;
 
-    xReturnedMainTask = xTaskCreate(mainTaskLoop, "MAIN", 2048, (void *)1, 32, &xMainTaskHandle);
+    xMutexNormalState = xSemaphoreCreateMutex();
+    xMutexDiagnosticState = xSemaphoreCreateMutex();
+    xMutexConsole = xSemaphoreCreateMutex();
 
-    if (xReturnedMainTask == pdFALSE)
+    xReturnedTaskCreationVal = xTaskCreate(mainTaskLoop, "MAIN", 4096, (void *)1, 32, &xMainTaskHandle);
+    if (xReturnedTaskCreationVal == pdFALSE)
     {
-        while (1)
+        if (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdTRUE)
+        {
+            Serial.println("setup: Main task creation unseuccesfull!");
+            xSemaphoreGive(xMutexConsole);
+        }
+
+        while (true)
+        {
+            /* Error. Needs restart. */
+        }
+    }
+    vTaskDelay(2000 / portTICK_PERIOD_MS); /* Waiting for main task loop to take semaphores. */
+
+    xReturnedTaskCreationVal = xTaskCreate(diagnosticTaskLoop, "DIAGNOSTIC", 4096, (void *)1, 31, &xDiagnosticTaskHandle);
+    if (xReturnedTaskCreationVal == pdFALSE)
+    {
+        if (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdTRUE)
+        {
+            Serial.println("setup: Diagnostic task creation unseuccesfull!");
+            xSemaphoreGive(xMutexConsole);
+        }
+
+        while (true)
         {
             /* Error. Needs restart. */
         }
     }
 
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
-
-    BaseType_t xReturnedDiagnosticTask;
-
-    xReturnedDiagnosticTask = xTaskCreate(diagnosticTaskLoop, "DIAGNOSTIC", 2048, (void *)1, 31, &xDiagnosticTaskHandle);
-
-    if (xReturnedDiagnosticTask == pdFALSE)
+    xReturnedTaskCreationVal = xTaskCreate(normalTaskLoop, "NORMAL", 4096, (void *)1, 30, &xNormalTaskHandle);
+    if (xReturnedTaskCreationVal == pdFALSE)
     {
-        while (1)
+        if (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdTRUE)
         {
-            /* Error. Needs restart. */
+            Serial.println("setup: Normal task creation unsuccesfull!");
+            xSemaphoreGive(xMutexConsole);
         }
-    }
 
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
-
-    BaseType_t xReturnedNormalTask;
-
-    xReturnedNormalTask = xTaskCreate(normalTaskLoop, "NORMAL", 2048, (void *)1, 30, &xNormalTaskHandle);
-
-    if (xReturnedNormalTask == pdFALSE)
-    {
-        while (1)
+        while (true)
         {
-            Serial.println("NORMAL TASK CREATE ERROR");
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
     }
 
-    // Serial.begin(9600);
-    //   Serial.print("Connecting to ");
-    //   Serial.println(ssid);
-    //   /* connecting to WiFi */
-    //   WiFi.begin(ssid, password);
-    //   /*wait until ESP32 connect to WiFi*/
-    //   while (WiFi.status() != WL_CONNECTED) {
-    //       delay(500);
-    //       Serial.print(".");
-    //   }
-    //   Serial.println("");
-    //   Serial.println("WiFi connected with IP address: ");
-    //   Serial.println(WiFi.localIP());
-    //   /* start Server */
-    //   server.begin();
-
-    
-  //  Serial.print("Connecting to ");
-  //  Serial.println(ssid);
-  //  /* connect to your WiFi */
-  //  WiFi.begin(ssid, password);
-  //  /* wait until ESP32 connect to WiFi*/
-  //  Serial.println(WiFi.broadcastIP());
-  //  while (WiFi.status() != WL_CONNECTED)
-  //  {
-  //      delay(500);
-  //      Serial.print(".");
-  //  }
-  //  Serial.println("");
-  //  Serial.println("WiFi connected with IP address: ");
-  //  Serial.println(WiFi.localIP());
-//
-  //  Serial.print("connecting to ");
-  //  Serial.println(host);
-  //  /* Use WiFiClient class to create TCP connections */
-//
-  //  while (!client.connect(host, port))
-  //  {
-  //      Serial.println("connection failed");
-  //      delay(5000);
-  //  }
-//
-  //  Serial.print("connected to host");
-  //  Serial.println(host);
-}//
+    //  server.begin();
+    //  while (!client.connect(host, port))
+    //  {
+    //      Serial.println("connection failed");
+    //      delay(5000);
+    //  }
+    //
+    //  Serial.print("connected to host");
+    //  Serial.println(host);
+}
 
 void loop()
 {
-    vTaskDelay(10000 / portTICK_PERIOD_MS);
-    Serial.println("-------------------------");
+    if (xLoopTaskHandle == NULL)
+    {
+        xLoopTaskHandle = xTaskGetCurrentTaskHandle();
+    }
+
+    if (Serial.available())
+    {
+        TaskHandle_t whoOwnsConsoleMutex = xSemaphoreGetMutexHolder(xMutexConsole);
+        if (whoOwnsConsoleMutex != xLoopTaskHandle)
+        {
+            while (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdFALSE)
+            {
+                vTaskDelay(1 / portTICK_PERIOD_MS);
+            }
+        }
+
+        Serial.println("loop: Incoming Data");
+        String serialRead = Serial.readString();
+        if (serialRead == "1")
+        {
+            EEPROMclear();
+            Serial.println("loop: EEPROM Cleared.");
+        }
+
+        if (serialRead == "31")
+        {
+            xSemaphoreGive(xMutexConsole);
+        }
+    }
+
+    //Serial.println("loop: Active");
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     // WiFiClient client = server.available();
     //   uint8_t data[30];
@@ -126,58 +128,15 @@ void loop()
     //         }
     //     }
     //   }
-    
-    //vector<int> a;
-
-
-
-
-/*
-    int wifiCount = WiFi.scanNetworks();
-
-    Serial.println("wifi count: " + wifiCount);
-
-    for (size_t i = 0; i < wifiCount; i++)
-    {
-        Serial.println(WiFi.SSID(i));
-        if (WiFi.SSID(i) == "83464349")
-        {
-            Serial.println("GOTCHU BITCH");
-            Serial.println("////");
-        }
-    }
-    delay (3000);
-*/
-
-/*
-    uint8_t machineID[8] = {8,9,6,3,2,1,4,5};
-    EEPROM.write(0, 35);
-    EEPROM.write(9, 35);
-    for (uint8_t i = 1; i < 9; i++)
-    {
-        EEPROM.write(i, machineID[i-1]);
-    }
-    EEPROM.commit();
-
-    for (uint8_t i = 0; i < 10; i++)
-    {
-        Serial.println(EEPROM.read(i));
-    }
-    Serial.println("/");
-
-    delay(3000);
-*/
-
-
     //while (client.connected())
     //{
     //    delay(1500);
-//
+    //
     //    /* This will send the data to the server */
     //    client.println("hello world");
     //    if (client.available())
     //    {
-//
+    //
     //        uint8_t data[30];
     //        int len = client.read(data, 30);
     //        if (len < 30)
