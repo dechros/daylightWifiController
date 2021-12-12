@@ -6,6 +6,7 @@
 #include "MainTask/mainTask.h"
 #include "DiagnosticStateTask/diagnosticTask.h"
 #include "NormalStateTask/normalTask.h"
+#include "ConsoleTask/consoleTask.h"
 
 void setup()
 {
@@ -18,7 +19,7 @@ void setup()
     xMutexDiagnosticState = xSemaphoreCreateMutex();
     xMutexConsole = xSemaphoreCreateMutex();
 
-    xReturnedTaskCreationVal = xTaskCreate(mainTaskLoop, "MAIN", 4096, (void *)1, 32, &xMainTaskHandle);
+    xReturnedTaskCreationVal = xTaskCreate(mainTaskLoop, "MAIN", 2048, (void *)1, 32, &xMainTaskHandle);
     if (xReturnedTaskCreationVal == pdFALSE)
     {
         if (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdTRUE)
@@ -32,7 +33,7 @@ void setup()
             /* Error. Needs restart. */
         }
     }
-    vTaskDelay(2000 / portTICK_PERIOD_MS); /* Waiting for main task loop to take semaphores. */
+    vTaskDelay(100 / portTICK_PERIOD_MS); /* Waiting for main task loop to take semaphores. */
 
     xReturnedTaskCreationVal = xTaskCreate(diagnosticTaskLoop, "DIAGNOSTIC", 4096, (void *)1, 31, &xDiagnosticTaskHandle);
     if (xReturnedTaskCreationVal == pdFALSE)
@@ -49,12 +50,27 @@ void setup()
         }
     }
 
-    xReturnedTaskCreationVal = xTaskCreate(normalTaskLoop, "NORMAL", 4096, (void *)1, 30, &xNormalTaskHandle);
+    xReturnedTaskCreationVal = xTaskCreate(normalTaskLoop, "NORMAL", 2048, (void *)1, 30, &xNormalTaskHandle);
     if (xReturnedTaskCreationVal == pdFALSE)
     {
         if (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdTRUE)
         {
             Serial.println("setup: Normal task creation unsuccesfull!");
+            xSemaphoreGive(xMutexConsole);
+        }
+
+        while (true)
+        {
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+        }
+    }
+
+    xReturnedTaskCreationVal = xTaskCreate(consoleTaskLoop, "CONSOLE", 2048, (void *)1, 29, &xConsoleTaskHandle);
+    if (xReturnedTaskCreationVal == pdFALSE)
+    {
+        if (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdTRUE)
+        {
+            Serial.println("setup: Console task creation unsuccesfull!");
             xSemaphoreGive(xMutexConsole);
         }
 
@@ -77,38 +93,33 @@ void setup()
 
 void loop()
 {
-    if (xLoopTaskHandle == NULL)
-    {
-        xLoopTaskHandle = xTaskGetCurrentTaskHandle();
-    }
-
-    if (Serial.available())
-    {
-        TaskHandle_t whoOwnsConsoleMutex = xSemaphoreGetMutexHolder(xMutexConsole);
-        if (whoOwnsConsoleMutex != xLoopTaskHandle)
-        {
-            while (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdFALSE)
-            {
-                vTaskDelay(1 / portTICK_PERIOD_MS);
-            }
-        }
-
-        Serial.println("loop: Incoming Data");
-        String serialRead = Serial.readString();
-        if (serialRead == "1")
-        {
-            EEPROMclear();
-            Serial.println("loop: EEPROM Cleared.");
-        }
-
-        if (serialRead == "31")
-        {
-            xSemaphoreGive(xMutexConsole);
-        }
-    }
+    //if (Serial.available())
+    //{
+    //    TaskHandle_t whoOwnsConsoleMutex = xSemaphoreGetMutexHolder(xMutexConsole);
+    //    if (whoOwnsConsoleMutex != xLoopTaskHandle)
+    //    {
+    //        while (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdFALSE)
+    //        {
+    //            vTaskDelay(1 / portTICK_PERIOD_MS);
+    //        }
+    //    }
+//
+    //    Serial.println("loop: Incoming Data");
+    //    String serialRead = Serial.readString();
+    //    if (serialRead == "1")
+    //    {
+    //        EEPROMclear();
+    //        Serial.println("loop: EEPROM Cleared.");
+    //    }
+//
+    //    if (serialRead == "31")
+    //    {
+    //        xSemaphoreGive(xMutexConsole);
+    //    }
+    //}
 
     //Serial.println("loop: Active");
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(10000 / portTICK_PERIOD_MS);
 
     // WiFiClient client = server.available();
     //   uint8_t data[30];

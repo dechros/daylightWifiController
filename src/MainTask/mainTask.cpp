@@ -52,13 +52,13 @@ void mainTaskLoop(void *pvParameters)
         }
 
         xSemaphoreGive(xMutexDiagnosticState);
-        TaskHandle_t whoOwnsDiagnosticMutex;
-        if (xSemaphoreTake(xMutexDiagnosticState, (TickType_t)10) == pdTRUE)
+        if (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdTRUE)
         {
             Serial.println("mainTaskLoop: Waiting diagnostic task to take its mutex.");
             xSemaphoreGive(xMutexConsole);
         }
-
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+        TaskHandle_t whoOwnsDiagnosticMutex;
         while (true)
         {
             whoOwnsDiagnosticMutex = xSemaphoreGetMutexHolder(xMutexDiagnosticState);
@@ -66,15 +66,13 @@ void mainTaskLoop(void *pvParameters)
             {
                 break;
             }
-            vTaskDelay(1 / portTICK_PERIOD_MS);
         }
+
         if (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdTRUE)
         {
             Serial.println("mainTaskLoop: Waiting diagnostic task to release its mutex.");
             xSemaphoreGive(xMutexConsole);
         }
-
-        vTaskDelay(3000 / portTICK_PERIOD_MS);
         while (xSemaphoreTake(xMutexDiagnosticState, (TickType_t)10) == pdFALSE)
         {
             vTaskDelay(1 / portTICK_PERIOD_MS);
@@ -163,7 +161,6 @@ bool EepromRead()
 
 bool diagnosticScan()
 {
-
     for (size_t i = 0; i < WiFi.scanNetworks(); i++)
     {
         if (WiFi.SSID(i) == "#D#" + machineID + "#")

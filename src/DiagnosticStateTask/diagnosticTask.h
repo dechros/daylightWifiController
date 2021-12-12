@@ -17,7 +17,7 @@ bool connectWithoutMachineID();
  * 
  * @return String parsed TCP stream data?
  */
-String readDiagnosticData();
+String readMachineIDdata();
 
 /**
  * @brief Saves machine ID to EEPROM memory.

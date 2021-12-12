@@ -6,7 +6,7 @@ void normalTaskLoop(void *pvParameters)
 
     if (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdTRUE)
     {
-        Serial.println("Task normalTaskLoop created successfully");
+        Serial.println("normalTaskLoop: Task created successfully");
         xSemaphoreGive(xMutexConsole);
     }
 
@@ -16,7 +16,7 @@ void normalTaskLoop(void *pvParameters)
         {
             if (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdTRUE)
             {
-                Serial.println("normalTaskLoop: xMutexNormalState alındı");
+                Serial.println("normalTaskLoop: xMutexNormalState alindi");
                 xSemaphoreGive(xMutexConsole);
             }
         }

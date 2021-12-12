@@ -14,7 +14,7 @@ calismaModu calismaMod = HATA;
 TaskHandle_t xMainTaskHandle = NULL;
 TaskHandle_t xDiagnosticTaskHandle = NULL;
 TaskHandle_t xNormalTaskHandle = NULL;
-TaskHandle_t xLoopTaskHandle = NULL;
+TaskHandle_t xConsoleTaskHandle = NULL;
 
 char *host = "192.168.1.31";
 int port = 8088;

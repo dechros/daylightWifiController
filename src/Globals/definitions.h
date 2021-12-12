@@ -9,4 +9,9 @@
 #define ENABLE 1
 #define DISABLE 0
 
+#define NEED_MACHINE_ID_DATA "#D#1#"
+#define MACHINE_ID_DATA_HEADER "#D#1#"
+#define NEED_MACHINE_ID_DATA_ACK "#D#1#ACK#"
+#define MESSAGE_FOOTER "#T#"
+
 #endif

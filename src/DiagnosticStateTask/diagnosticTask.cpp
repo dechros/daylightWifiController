@@ -1,5 +1,7 @@
 #include "diagnosticTask.h"
 
+#include <bits/stdc++.h>
+
 void diagnosticTaskLoop(void *pvParameters)
 {
     configASSERT(((uint32_t)pvParameters) == 1);
@@ -32,7 +34,7 @@ void diagnosticTaskLoop(void *pvParameters)
                 {
                     if (connectWithoutMachineID() == true)
                     {
-                        String tempString = readDiagnosticData();
+                        String tempString = readMachineIDdata();
                         if (saveMachineIDtoEEPROM(tempString) == true)
                         {
                             if (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdTRUE)
@@ -85,7 +87,7 @@ void diagnosticTaskLoop(void *pvParameters)
             }
             xSemaphoreGive(xMutexDiagnosticState);
         }
-        vTaskDelay(3000 / portTICK_PERIOD_MS);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
     }
 }
 
@@ -115,8 +117,49 @@ bool saveMachineIDtoEEPROM(String TCPmachineID)
     }
 }
 
-String readDiagnosticData()
+String readMachineIDdata()
 {
+    if (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdTRUE)
+    {
+        Serial.println("readMachineIDdata: Trying to connect TCP server.");
+        xSemaphoreGive(xMutexConsole);
+    }
+    while (client.connect(host, port) == false)
+    {
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+
+    String incomingData = "";
+    while (client.connected() == true) /* Reading NEED_MACHINE_ID_DATA from TCP */
+    {
+        client.println(NEED_MACHINE_ID_DATA);
+
+        if (client.available() == true)
+        {
+            uint8_t *data = new uint8_t[1];
+            client.read(data, 1);
+            incomingData = incomingData + (char *)data;
+
+            int incomingDataLength = incomingData.length();
+            if (incomingDataLength > 3)
+            {
+                String footer = footer +
+                                incomingData[incomingDataLength - 3] +
+                                incomingData[incomingDataLength - 2] +
+                                incomingData[incomingDataLength - 1];
+
+                if (footer == MESSAGE_FOOTER)
+                {
+                    if (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdTRUE)
+                    {
+                        Serial.print("readMachineIDdata: incomingData = " + incomingData);
+                        xSemaphoreGive(xMutexConsole);
+                    }
+                }
+            }
+        }
+        vTaskDelay(1 / portTICK_PERIOD_MS);
+    }
     return "89632145";
 }
 
@@ -204,7 +247,6 @@ bool connectWithoutMachineID()
                     Serial.println("connectWithoutMachineID: Trying to connect to: " + ssid);
                     xSemaphoreGive(xMutexConsole);
                 }
-                
 
                 WiFi.mode(WIFI_STA);
                 WiFi.begin((char *)"DIAGNOSTIC89632145", (char *)"DIAGNOSTIC");
@@ -217,7 +259,7 @@ bool connectWithoutMachineID()
                         Serial.print(WiFi.status());
                         xSemaphoreGive(xMutexConsole);
                     }
-                    
+
                     if (connectionRetryCounter >= WIFI_MAX_RETRY)
                     {
                         if (xSemaphoreTake(xMutexConsole, (TickType_t)10) == pdTRUE)
@@ -260,7 +302,7 @@ bool connectWithoutMachineID()
             Serial.println("connectWithoutMachineID: Cannot find any actife WiFi.");
             xSemaphoreGive(xMutexConsole);
         }
-        
+
         return false;
     }
     else

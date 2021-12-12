@@ -7,6 +7,7 @@
 #include <string.h>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 #include "enums.h"
 
@@ -25,7 +26,7 @@ extern SemaphoreHandle_t xMutexConsole;
 extern TaskHandle_t xMainTaskHandle;
 extern TaskHandle_t xDiagnosticTaskHandle;
 extern TaskHandle_t xNormalTaskHandle;
-extern TaskHandle_t xLoopTaskHandle;
+extern TaskHandle_t xConsoleTaskHandle;
 
 extern calismaModu calismaMod;
 
