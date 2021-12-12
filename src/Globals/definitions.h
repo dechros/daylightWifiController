@@ -1,0 +1,7 @@
+#ifndef DEFINITIONS_H
+#define DEFINITIONS_H
+
+#define EEPROM_SIZE 512
+#define SERIAL_BAUDRATE 9600
+
+#endif
