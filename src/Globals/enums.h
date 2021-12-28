@@ -19,4 +19,15 @@ enum calismaModu
     NORMAL = 2
 };
 
+enum girisStateMachine
+{
+    ERROR_STATE = 0,
+    WiFi_SCAN_STATE = 1,
+    WiFi_CONNECT_STATE = 2,
+    TCP_CONNECT_STATE = 3,
+    TCP_GET_MACHINEID_STATE = 4,
+    EEPROM_MACHINEID_WRITE_STATE = 5,
+    END_OF_GIRIS_STATE_MACHINE = 6
+};
+
 #endif // ENUMS_H

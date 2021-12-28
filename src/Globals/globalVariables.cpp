@@ -16,7 +16,7 @@ TaskHandle_t xDiagnosticTaskHandle = NULL;
 TaskHandle_t xNormalTaskHandle = NULL;
 TaskHandle_t xConsoleTaskHandle = NULL;
 
-char *host = "192.168.1.31";
+char *host = "192.168.1.20";
 int port = 8088;
 
 void EEPROMclear()
